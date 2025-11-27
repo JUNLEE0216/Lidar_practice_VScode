@@ -5,7 +5,6 @@ import numpy as np
 def callback(message):
     ranges = np.array(message['ranges'])
 
-    # LDS-02는 angle_increment = 1도 라고 가정
     front = np.r_[ranges[350:360], ranges[0:10]]
     left  = ranges[80:100]
     right = ranges[260:280]
