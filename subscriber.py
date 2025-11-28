@@ -1,5 +1,8 @@
 import roslibpy
 import numpy as np
+import mysql.connector
+import json
+from datetime import datetime
 
 
 def callback(message):
@@ -25,17 +28,31 @@ def callback(message):
     action_msg = roslibpy.Message({'data': action})
     publisher.publish(action_msg)
 
+    ranges_json = json.dumps(ranges.tolist())   # numpy array → list → JSON 문자열
+    sql = "INSERT INTO lidardata (ranges, action) VALUES (%s, %s)"
+    cursor.execute(sql, (ranges_json, action))
+    db.commit()
+
+
 
 def main():
     client = roslibpy.Ros(host='172.19.160.132', port=9090)
     client.run()
 
-    global publisher
+    global publisher, db, cursor
     publisher = roslibpy.Topic(client, '/turtle_action', 'std_msgs/String')
     publisher.advertise()
 
     subscriber = roslibpy.Topic(client, '/scan', 'sensor_msgs/LaserScan')
     subscriber.subscribe(callback)
+
+    db = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="0216",
+        database="lidardb"
+    )
+    cursor = db.cursor()
 
     try:
         while True:
@@ -44,6 +61,9 @@ def main():
         subscriber.unsubscribe()
         publisher.unadvertise()
         client.terminate()
+        cursor.close()
+        db.close()
+
 
 if __name__ == '__main__':
     main()
